@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Environments
+.venv/
+.env
+.env.*
+
+# Hydra / experiment outputs
+outputs/
+multirun/
+logs/
+wandb/
+cache/
+
+# Generated scientific data and figures
+data/
+fig/
+fes/
+pdb/
+test/
+new-test-case/
+*.out
+*.log
+*.csv
+*.png
+*.pdf
+*.svg
+*.tga
+*.gro
+*.xtc
+*.trr
+*.cif
+*.pdb
+
+# Model weights and checkpoints
+*.ckpt
+*.pt
+*.pth
+src/ckpt/*
+!src/ckpt/.gitkeep
