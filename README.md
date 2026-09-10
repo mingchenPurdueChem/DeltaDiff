@@ -1,12 +1,12 @@
 # DeltaDiff
 
-DeltaDiff is a physics-guided inference workflow for mutation-aware protein conformational sampling with a pretrained structure-to-structure diffusion model and TorchMD-Net coarse-grained guidance.
+DeltaDiff is a physics-guided inference workflow for mutation-aware protein conformational sampling with a pretrained structure-to-structure diffusion model and coarse-grained guidance from either TorchMD-Net or MLCG.
 
 The workflow uses:
 - a pretrained **Str2Str** checkpoint as the base diffusion model
-- a pretrained **TorchMD coarse-grained multiprotein checkpoint** as an external mutation-guidance potential
+- an external mutation-guidance potential from either a pretrained **TorchMD coarse-grained multiprotein checkpoint** or a pretrained **MLCG (ClementiGroup) transferable coarse-grained checkpoint**
 
-During reverse diffusion, DeltaDiff evaluates the same evolving structure with both wild-type and mutant sequence embeddings in the TorchMD CG model, computes the mutant-minus-WT force difference, and injects that guidance back into the reverse update.
+During reverse diffusion, DeltaDiff evaluates the same evolving structure with both wild-type and mutant sequence embeddings in the chosen CG model, computes the mutant-minus-WT force difference, and injects that guidance back into the reverse update. The two backends are drop-in alternatives for each other: same interface, same `F_ext = F_mut - F_wt` guidance contract, same pull-back-to-noise-space usage in `src/models/score/r3.py` — only the force-field evaluator differs.
 
 ---
 
@@ -62,6 +62,28 @@ After extracting the archive, DeltaDiff uses the multiprotein checkpoint:
     Models/multiprotein/model.ckpt
 
 Update the path in `configs/model/diffusion.yaml` to point to your local copy of this checkpoint before running mutation-guided workflows.
+
+### 3) MLCG coarse-grained guidance checkpoint (alternative to TorchMD)
+
+As an alternative external guidance potential, DeltaDiff can instead use the pretrained transferable coarse-grained model from Charron, N. E. et al., ["Navigating protein landscapes with a machine-learned transferable coarse-grained model"](https://www.nature.com/articles/s41557-025-01874-0) (*Nat. Chem.*, 2025), built on the [ClementiGroup/mlcg](https://github.com/ClementiGroup/mlcg) package.
+
+First, install the `mlcg` package into the `deltadiff` environment:
+
+    git clone https://github.com/ClementiGroup/mlcg
+    cd mlcg
+    pip install .
+
+Then download the pretrained model-and-prior checkpoint from the paper's Zenodo record:
+
+    https://doi.org/10.5281/zenodo.15465782
+
+and place the `model_and_prior.pt` file at:
+
+    mlcg_pretrained/checkpoint/model_and_prior.pt
+
+Point the guidance module at this checkpoint the same way as the TorchMD one (see `load_mlcg_model` / `MLCGGuidance` in `scripts/mlcg_guidance.py`, and `src/models/guidance/mlcg_cg_guidance.py` for the drop-in `TorchMDCGGuidance`-compatible wrapper used in `configs/model/diffusion.yaml`).
+
+If you need to guide sampling for a protein sequence not already covered by the provided checkpoint inputs, use [mlcg-tk](https://github.com/ClementiGroup/mlcg-tk) to generate the required per-molecule configuration/template files — follow the instructions in the `examples` folder of that repo (the transferable model's prior parameters are at `mlcg-tk/examples/transferable_priors.yaml`).
 
 ---
 
