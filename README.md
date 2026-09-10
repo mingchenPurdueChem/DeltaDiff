@@ -87,6 +87,43 @@ If you need to guide sampling for a protein sequence not already covered by the 
 
 ---
 
+## Switching the guidance backend: TorchMD vs. MLCG
+
+The guidance backend is selected per-run in `configs/model/diffusion.yaml`, under `model.net.trans_diffuser.guidance`. **TorchMD is the default** — a plain `enabled: true` block with no `backend` key uses `TorchMDCGGuidance`.
+
+Default (TorchMD) config:
+
+    guidance:
+      enabled: true
+      checkpoint: /path/to/torchmd-protein-thermodynamics/Models/multiprotein/model.ckpt
+      xhat_is_nm: true
+      use_mutant_minus_wt: true
+      score_clip: 100.0
+      guidance_scale: 1.5
+      mutations:
+        - resid: 39
+          wt: D
+          mut: N
+
+To activate MLCG guidance instead, add `backend: mlcg` and point `checkpoint` at the MLCG `model_and_prior.pt` file instead of the TorchMD `.ckpt`. Every other key (`xhat_is_nm`, `use_mutant_minus_wt`, `score_clip`, `guidance_scale`, `mutations`) keeps the same meaning and format, since both guidance classes share the same constructor interface:
+
+    guidance:
+      enabled: true
+      backend: mlcg
+      checkpoint: mlcg_pretrained/checkpoint/model_and_prior.pt
+      xhat_is_nm: true
+      use_mutant_minus_wt: true
+      score_clip: 100.0
+      guidance_scale: 1.5
+      mutations:
+        - resid: 39
+          wt: D
+          mut: N
+
+No other changes are needed — `src/models/score/r3.py` reads `backend` (defaulting to `"torchmd"` when the key is absent, so existing configs keep working unmodified) and instantiates `TorchMDCGGuidance` or `MLCGCGGuidance` from `src/models/guidance/` accordingly. Make sure the `mlcg` package (see checkpoint section above) is installed before running with `backend: mlcg`, and that `scripts/mlcg_guidance.py` is present in the repo (it provides `load_mlcg_model`, which `MLCGCGGuidance` imports).
+
+---
+
 ## Input Data
 
 Evaluation and inference read input structures from the test-data path configured through Hydra:
